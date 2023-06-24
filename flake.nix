@@ -1,19 +1,18 @@
 {
     description = "webapp to enumerate every perfect-clear";
     inputs.wasm-tooling.url = github:rambip/wasm-tooling;
+    inputs.flake-utils.url = github:numtide/flake-utils;
 
-    outputs = {self, nixpkgs, wasm-tooling}: 
-        let forAllSystems = nixpkgs.lib.genAttrs [ "x86_64-linux" "x86_64-darwin" ];
-        in
-    {
-
-        packages = forAllSystems (system:
+    outputs = {self, nixpkgs, flake-utils, wasm-tooling}: with flake-utils.lib;
+        eachSystem [system.x86_64-linux system.x86_64-darwin] (system:
+            let rust-tooling = wasm-tooling.lib."${system}".rust;
+            in
             {
-                default = wasm-tooling.lib."${system}".rust.buildWithTrunk {
-                    src = ./.;
+                packages.default = rust-tooling.buildWithTrunk {
+                    src=./.;
                     fixRelativeUrl = true;
                 };
-            });
-        devShells = wasm-tooling.devShells;
-    };
+                devShells.default = rust-tooling.makeDevShell {src=./.;};
+            }
+        );
 }
